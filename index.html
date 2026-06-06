@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - FinanceExpress</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .container { 
+            background: white; padding: 40px; border-radius: 20px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); width: 100%; max-width: 450px; 
+        }
+        h1 { text-align: center; color: #0f172a; margin-bottom: 10px; font-size: 28px; }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #334155; }
+        input { 
+            width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 10px; 
+            font-size: 16px; transition: all 0.3s;
+        }
+        input:focus { outline: none; border-color: #3b82f6; }
+        .btn { 
+            width: 100%; padding: 16px; background: #f59e0b; color: #0f172a; border: none; 
+            border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s;
+        }
+        .btn:hover { background: #fbbf24; transform: translateY(-2px); }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+        .message { padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; display: none; }
+        .success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+        .info { background: #dbeafe; color: #1e40af; border: 1px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FinanceExpress</h1>
+        <p class="subtitle">Crée ton compte en 30 secondes</p>
+        
+        <div id="message" class="message"></div>
+
+        <div id="formulaire">
+            <div class="form-group">
+                <label>Email Gmail *</label>
+                <input type="email" id="email" placeholder="tonemail@gmail.com" required>
+            </div>
+            <div class="form-group">
+                <label>Mot de passe *</label>
+                <input type="password" id="password" placeholder="Min 6 caractères" required>
+            </div>
+            <button class="btn" onclick="inscrire()">S'inscrire et recevoir l'email</button>
+        </div>
+
+        <div id="verifie" style="display: none; text-align: center;">
+            <div style="font-size: 60px; margin-bottom: 20px;">📧</div>
+            <h2 style="color: #1e40af; margin-bottom: 15px;">Vérifie ton email !</h2>
+            <p style="color: #64748b;">On t'a envoyé un lien de confirmation à <b id="emailEnvoye"></b></p>
+            <p style="color: #64748b; margin-top: 10px;">Clique le lien dans Gmail pour activer ton compte.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyB7JTzPJDQVkIfh44aQAO-pIQU9eaLUYxY",
+          authDomain: "financeexpress-d0715.firebaseapp.com",
+          projectId: "financeexpress-d0715",
+          storageBucket: "financeexpress-d0715.firebasestorage.app",
+          messagingSenderId: "1050709892664",
+          appId: "1:1050709892664:web:dea4e041984d6ee91a90cd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Si déjà inscrit et vérifié, redirige
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.emailVerified) {
+                window.location.href = "https://monika-sourc.github.io/Szybka-po-yczka-prywatna/index.html";
+            }
+        });
+
+        window.inscrire = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = event.target;
+
+            if (!email || !password) {
+                showMessage("Remplis email et mot de passe", "error");
+                return;
+            }
+            if (password.length < 6) {
+                showMessage("Mot de passe: 6 caractères minimum", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Création...";
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await sendEmailVerification(userCredential.user);
+                document.getElementById('emailEnvoye').textContent = email;
+                document.getElementById('formulaire').style.display = 'none';
+                document.getElementById('verifie').style.display = 'block';
+                showMessage("Email envoyé ! Vérifie tes spams aussi", "success");
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    showMessage("Cet email est déjà utilisé", "error");
+                } else {
+                    showMessage("Erreur: " + error.message, "error");
+                }
+                btn.disabled = false;
+                btn.textContent = "S'inscrire et recevoir l'email";
+            }
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+            msg.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
